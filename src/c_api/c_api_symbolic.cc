@@ -1065,6 +1065,65 @@ int MXQuantizeSymbol(SymbolHandle sym_handle,
   API_END_HANDLE_ERROR(delete s);
 }
 
+
+int MXEmbededQuantizeSymbol(SymbolHandle sym_handle,
+                     SymbolHandle *ret_sym_handle,
+                     const int* dev_type,
+                     const uint32_t num_excluded_sym_names,
+                     const char **excluded_sym_names,
+                     const uint32_t num_excluded_op_names,
+                     const char **excluded_op_names,
+                     const uint32_t num_offline,
+                     const char **offline_params,
+                     const char *quantized_dtype,
+                     const bool calib_quantize,
+                     const char *quantize_mode,
+                     const char *quantize_granularity,
+                     mx_uint* out_num_calib_names,
+                     const char ***out_calib_names) {
+  nnvm::Symbol *s = new nnvm::Symbol();
+      API_BEGIN();
+    nnvm::Symbol *sym = static_cast<nnvm::Symbol*>(sym_handle);
+    nnvm::Graph g = Symbol2Graph(*sym);
+    int target_dev = *dev_type;
+    std::unordered_set<std::string> excluded_node_names;
+    for (size_t i = 0; i < num_excluded_sym_names; ++i) {
+      excluded_node_names.emplace(excluded_sym_names[i]);
+    }
+    std::unordered_set<std::string> excluded_op;
+    for (size_t i = 0; i < num_excluded_op_names; ++i) {
+      excluded_op.emplace(excluded_op_names[i]);
+    }
+    std::unordered_set<std::string> offline;
+    for (size_t i = 0; i < num_offline; ++i) {
+      offline.emplace(offline_params[i]);
+    }
+    std::string quantized_type(quantized_dtype);
+    std::string quantized_mode(quantize_mode);
+    std::string quantized_granularity(quantize_granularity);
+    g.attrs["excluded_nodes"] = std::make_shared<nnvm::any>(std::move(excluded_node_names));
+    g.attrs["excluded_ops"] = std::make_shared<nnvm::any>(std::move(excluded_op));
+    g.attrs["offline_params"] = std::make_shared<nnvm::any>(std::move(offline));
+    g.attrs["quantized_dtype"] = std::make_shared<nnvm::any>(std::move(quantized_type));
+    g.attrs["target_ctx"] = std::make_shared<nnvm::any>(target_dev);
+    g.attrs["quantize_mode"] = std::make_shared<nnvm::any>(std::move(quantized_mode));
+    g.attrs["quantize_granularity"] = std::make_shared<nnvm::any>(std::move(quantized_granularity));
+    g = ApplyPass(std::move(g), "EmbedQuantizeGraph");
+    const auto& calib_nodes = g.GetAttr<std::vector<std::string>>("calib_nodes");
+    MXAPIThreadLocalEntry<> *ret = MXAPIThreadLocalStore<>::Get();
+    ret->ret_vec_str = std::move(calib_nodes);
+    *out_num_calib_names = ret->ret_vec_str.size();
+    ret->ret_vec_charp.clear();
+    ret->ret_vec_charp.reserve(ret->ret_vec_str.size());
+    for (const auto &str : ret->ret_vec_str) {
+      ret->ret_vec_charp.push_back(str.c_str());
+    }
+    *out_calib_names = dmlc::BeginPtr(ret->ret_vec_charp);
+    s->outputs = g.outputs;
+    *ret_sym_handle = s;
+  API_END_HANDLE_ERROR(delete s);
+}
+
 // helper function to add mapping of node_name -> dtype map
 // for the given indexed graph and inferred_dtypes
 static void _SetInputDTypes(

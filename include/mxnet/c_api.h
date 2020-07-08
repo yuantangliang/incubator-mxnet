@@ -2146,6 +2146,23 @@ MXNET_DLL int MXQuantizeSymbol(SymbolHandle sym_handle,
                                const char *quantize_mode, const char *quantize_granularity,
                                uint32_t* out_num_calib_names, const char ***out_calib_names);
 
+
+MXNET_DLL int MXEmbededQuantizeSymbol(SymbolHandle sym_handle,
+                            SymbolHandle *ret_sym_handle,
+                            const int* dev_type,
+                            const uint32_t num_excluded_sym_names,
+                            const char **excluded_sym_names,
+                            const uint32_t num_excluded_op_names,
+                            const char **excluded_op_names,
+                            const uint32_t num_offline,
+                            const char **offline_params,
+                            const char *quantized_dtype,
+                            const bool calib_quantize,
+                            const char *quantize_mode,
+                            const char *quantize_granularity,
+                            mx_uint* out_num_calib_names,
+                            const char ***out_calib_names);
+
 /*!
  * \brief Convert a symbol into a mixed precision symbol with cast operators for target dtype casting
  * \param sym_handle symbol to be converted
