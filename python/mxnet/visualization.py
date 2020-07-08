@@ -379,7 +379,8 @@ def plot_network(symbol, title="plot", save_format='pdf', shape=None, dtype=None
             attr["fillcolor"] = cm[5]
         elif op == "Softmax":
             attr["fillcolor"] = cm[6]
-        elif op == "_contrib_dequantize" or op == "_contrib_requantize" or op == '_contrib_quantized_act':
+        elif op == "_contrib_dequantize" or op == "_contrib_requantize" or op == '_contrib_quantized_act' \
+               or op == "_contrib_quantize_v2":
             label = to_shorter_name(op)
             attr["fillcolor"] = cm[2]
         else:
